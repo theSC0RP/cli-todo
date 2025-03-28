@@ -7,10 +7,10 @@ import (
 	"github.com/theSC0RP/cli-todo/storage"
 )
 
-var updatedTask string
+var editedTask string
 
 var updateCmd = &cobra.Command{
-	Use: "update [id]",
+	Use: "edit [id]",
 	Run: func(cmd *cobra.Command, args []string) {
 		var id = args[0]
 
@@ -19,14 +19,14 @@ var updateCmd = &cobra.Command{
 
 		// Check if the task exists
 		if task, exists := todos[id]; exists {
-			// Update task description if flag is provided
-			if updatedTask != "" {
-				task.Task = updatedTask
+			// Edit task description if flag is provided
+			if editedTask != "" {
+				task.Task = editedTask
 				todos[id] = task
 				storage.SaveTodos(todos)
-				fmt.Printf("Task %s updated to: \"%s\"\n", id, updatedTask)
+				fmt.Printf("Task %s changed to: \"%s\"\n", id, editedTask)
 			} else {
-				fmt.Println("No update provided. Use -t to specify a new task description.")
+				fmt.Println("No change provided. Use -t to specify the edited task.")
 			}
 		} else {
 			fmt.Println("Task not found")
@@ -35,6 +35,6 @@ var updateCmd = &cobra.Command{
 }
 
 func init() {
-	updateCmd.Flags().StringVarP(&updatedTask, "task", "t", "", "Updated task title")
+	updateCmd.Flags().StringVarP(&editedTask, "task", "t", "", "edited task")
 	RootCmd.AddCommand(updateCmd)
 }
