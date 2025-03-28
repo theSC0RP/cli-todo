@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
+	"github.com/theSC0RP/cli-todo/my_table"
 	"github.com/theSC0RP/cli-todo/storage"
+	"github.com/theSC0RP/cli-todo/todo"
+	"github.com/theSC0RP/cli-todo/utils"
 )
 
 var listCmd = &cobra.Command{
@@ -14,13 +15,10 @@ var listCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		tasks := storage.LoadTodos()
 
-		for _, task := range tasks {
-			status := "[ ]"
-			if task.Done {
-				status = "[x]"
-			}
-			fmt.Printf("\n%s | %s | %s\n", task.ID, task.Task, status)
-		}
+		todos := utils.MapValues(tasks)
+		todoList := todo.TodoList{Todos: todos}
+
+		my_table.RenderTable(todoList)
 	},
 }
 

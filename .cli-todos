@@ -1,22 +1,8 @@
 {
     "1": {
         "id": "1",
-        "task": "Complete CLI Todo",
-        "done": false
-    },
-    "3": {
-        "id": "3",
-        "task": "Apply to that GO job in apple notes",
-        "done": false
-    },
-    "4": {
-        "id": "4",
-        "task": "Sleep at 2",
-        "done": false
-    },
-    "5": {
-        "id": "5",
-        "task": "New task updated",
-        "done": false
+        "task": "Changed task",
+        "done": false,
+        "priority": 5
     }
 }
