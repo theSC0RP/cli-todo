@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/theSC0RP/cli-todo/storage"
+	"github.com/theSC0RP/cli-todo/db"
+	"github.com/theSC0RP/cli-todo/todo"
 )
 
 var editedTask string
@@ -14,35 +16,10 @@ var editedPriority int
 var updateCmd = &cobra.Command{
 	Use:   "edit [id]",
 	Short: "Edit an existing task",
-	Long: `Edits an existing task in the to-do list.
-
-You must provide the task ID to edit. You can modify the task description, 
-priority, and category. If a field is not specified, it remains unchanged.
-
-Priority levels:
-    5 - Highest
-    4 - High
-    3 - Medium
-    2 - Low
-    1 - Lowest
-
-Usage examples:
-    cli-todo edit 3 -t "Buy fresh vegetables"
-    cli-todo edit 7 -p 4 -c "Personal"
-    cli-todo edit 5 -t "Submit assignment" -p 5 -c "College"`,
-	Args: cobra.ExactArgs(1), // Ensures exactly one argument (ID) is provided
+	Long:  "",
+	Args:  cobra.ExactArgs(1), // Ensures exactly one argument (ID) is provided
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
-
-		// Load existing todos
-		todos := storage.LoadTodos()
-
-		// Check if task exists
-		task, exists := todos[id]
-		if !exists {
-			fmt.Println("Task not found. Use 'list' to view existing tasks.")
-			return
-		}
 
 		// Ensure at least one change is provided
 		if editedTask == "" && editedPriority == 0 && editedCategory == "" {
@@ -59,21 +36,70 @@ Usage examples:
 			return
 		}
 
-		// Apply changes
-		if editedPriority != 0 {
-			task.Priority = editedPriority
-		}
-		if editedTask != "" {
-			task.Task = editedTask
-		}
-		if editedCategory != "" {
-			task.Category = editedCategory
+		sqlDB, err := db.ConnectDB()
+		if err != nil {
+			fmt.Print(connectionErrorMessage, err)
+			return
 		}
 
-		// Save the updated task
-		todos[id] = task
-		storage.SaveTodos(todos)
-		fmt.Printf("Task %s updated successfully.\n", id)
+		exists, err := db.CheckIfTableExists(sqlDB, "todos")
+		if err != nil {
+			fmt.Print(tablCheckErrorMessage, err)
+			return
+		}
+
+		if !exists {
+			fmt.Print(noTodosMessage)
+			return
+		}
+
+		tx, err := sqlDB.Begin()
+		if err != nil {
+			fmt.Println("Could not start a transaction:", err)
+			return
+		}
+
+		var todoItem todo.Todo
+
+		// Fetch the entire Todo record before updating
+		selectQuery := "SELECT id, task, done, priority, category FROM todos WHERE id = ?"
+		err = tx.QueryRow(selectQuery, id).Scan(&todoItem.ID, &todoItem.Task, &todoItem.Done, &todoItem.Priority, &todoItem.Category)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				fmt.Println("Todo with the given ID does not exist.", err)
+				return
+			}
+			tx.Rollback()
+			fmt.Println("Error fetching the todo:", err)
+			return
+		}
+
+		// Apply changes
+		if editedPriority != 0 {
+			todoItem.Priority = editedPriority
+		}
+		if editedTask != "" {
+			todoItem.Task = editedTask
+		}
+		if editedCategory != "" {
+			todoItem.Category = editedCategory
+		}
+
+		updateQuery := "UPDATE todos SET task = ?, priority = ?, category = ? WHERE id = ?;"
+		_, err = tx.Exec(updateQuery, todoItem.Task, todoItem.Priority, todoItem.Category, id)
+		if err != nil {
+			tx.Rollback()
+			fmt.Println("Error updating todo:", err)
+			return
+		}
+
+		if err = tx.Commit(); err != nil {
+			fmt.Println("Error committing transaction:", err)
+			return
+		}
+
+		fmt.Printf("Todo updated successfully.\n")
 	},
 }
 

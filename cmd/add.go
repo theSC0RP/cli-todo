@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/spf13/cobra"
-	"github.com/theSC0RP/cli-todo/storage"
+	"github.com/theSC0RP/cli-todo/db"
 	"github.com/theSC0RP/cli-todo/todo"
 )
 
@@ -56,28 +56,46 @@ Usage examples:
     cli-todo add "Finish project report" -p 5 -c "Work"`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		tasks := storage.LoadTodos()
-
-		id := getFirstMissingNumber(tasks)
-
 		if todoPriority < 1 || todoPriority > 5 {
 			fmt.Println("Error: Todo priority should be between 1-5 (both inclusive).")
 			return
 		}
 
-		// Add the new task
-		tasks[id] = todo.Todo{
-			ID:       id,
+		task := todo.Todo{
 			Task:     args[0],
 			Done:     false,
 			Priority: todoPriority,
 			Category: todoCategory,
 		}
 
-		// Save tasks to storage
-		storage.SaveTodos(tasks)
+		sqlDB, err := db.ConnectDB()
+		if err != nil {
+			fmt.Println(connectionErrorMessage, err)
+			return
+		}
 
-		fmt.Printf("Task added: [%s] %s (Priority: %d, Category: %s)\n", id, args[0], todoPriority, todoCategory)
+		err = db.CreateTableIfNotExists(sqlDB, "todos", todo.TodoColumns)
+		if err != nil {
+			fmt.Println("Table could not be created: ", err)
+			return
+		}
+
+		query := "INSERT INTO todos (task, done, priority, category) VALUES (?, ?, ?, ?);"
+		result, err := sqlDB.Exec(query, task.Task, task.Done, task.Priority, task.Category)
+		if err != nil {
+			fmt.Printf("Failed to add task: %v\n", err)
+			return
+		}
+
+		id, err := result.LastInsertId()
+		if err != nil {
+			fmt.Printf("Failed to fetch last inserted Iid: %v\n", err)
+			return
+		}
+
+		fmt.Printf("Task added: [%d] %s (Priority: %d, Category: %s)\n", id, args[0], todoPriority, todoCategory)
+
+		defer db.CloseConnection(sqlDB)
 	},
 }
 
