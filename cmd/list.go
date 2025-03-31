@@ -39,6 +39,7 @@ Examples:
 			fmt.Println(connectionErrorMessage, err)
 			return
 		}
+		defer db.CloseConnection(sqlDB)
 
 		exists, err := db.CheckIfTableExists(sqlDB, "todos")
 		if err != nil {

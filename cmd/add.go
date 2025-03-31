@@ -2,36 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"sort"
-	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/theSC0RP/cli-todo/db"
 	"github.com/theSC0RP/cli-todo/todo"
 )
-
-func getFirstMissingNumber(tasks map[string]todo.Todo) string {
-	var ids []int
-
-	for id := range tasks {
-		intID, err := strconv.Atoi(id)
-		if err == nil {
-			ids = append(ids, intID)
-		}
-	}
-
-	sort.Ints(ids) // Sort IDs in ascending order
-
-	missingNum := 1
-	for _, num := range ids {
-		if num == missingNum {
-			missingNum++
-		} else {
-			break
-		}
-	}
-	return strconv.Itoa(missingNum)
-}
 
 var todoPriority int
 var todoCategory string
@@ -73,6 +48,7 @@ Usage examples:
 			fmt.Println(connectionErrorMessage, err)
 			return
 		}
+		defer db.CloseConnection(sqlDB)
 
 		err = db.CreateTableIfNotExists(sqlDB, "todos", todo.TodoColumns)
 		if err != nil {

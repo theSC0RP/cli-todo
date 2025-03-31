@@ -32,6 +32,7 @@ Usage examples:
 			fmt.Println("Error connecting to the db")
 			return
 		}
+		defer db.CloseConnection(sqlDB)
 
 		exists, err := db.CheckIfTableExists(sqlDB, "todos")
 		if err != nil {

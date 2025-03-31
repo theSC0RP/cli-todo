@@ -70,6 +70,7 @@ func changeTaskStatus(status bool, id int) (string, error) {
 		fmt.Print(connectionErrorMessage, err)
 		return "", err
 	}
+	defer db.CloseConnection(sqlDB)
 
 	exists, err := db.CheckIfTableExists(sqlDB, "todos")
 	if err != nil {

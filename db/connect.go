@@ -7,7 +7,7 @@ import (
 )
 
 func ConnectDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite", "test.db")
+	db, err := sql.Open("sqlite", ".cli-todo.db")
 	return db, err
 }
 
